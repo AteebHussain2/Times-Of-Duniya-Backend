@@ -49,7 +49,7 @@ class ArticleWriterAgents:
             verbose=True,
             llm=self.llm,
             max_rpm=10,
-            max_iter=5,
+            max_iter=3,
         )
 
     def final_editor(self):
@@ -67,5 +67,5 @@ class ArticleWriterAgents:
             verbose=True,
             llm=self.llm,
             max_rpm=10,
-            max_iter=5,
+            max_iter=2,
         )
