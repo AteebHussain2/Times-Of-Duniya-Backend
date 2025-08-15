@@ -20,9 +20,15 @@ from config.article.create_article import run_article_writer_crew
 from schemas.articleSchema import ArticleEntity
 from models.articleModel import ArticleModel
 
+REDIS_URL = os.getenv("REDIS_URL")
+if not REDIS_URL:
+    raise ValueError("REDIS_URL environment variable is not set")
 
 apiRoute = APIRouter()
-redis_conn = Redis.from_url(os.getenv("REDIS_URL"))
+redis_conn = Redis.from_url(
+    REDIS_URL
+    or "redis://default:EisIgbzSIOUOtaAHHLaqCWVSgRiNEwTk@gondola.proxy.rlwy.net:56125"
+)
 task_queue = Queue(connection=redis_conn)
 
 
