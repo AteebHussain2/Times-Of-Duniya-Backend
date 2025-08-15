@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from lib.validate_key import isValidApiKey
 from fastapi import APIRouter, Header
 import json
+import os
 
 # Queue for AI Agents
 # Redis Imports for queue management
@@ -21,7 +22,7 @@ from models.articleModel import ArticleModel
 
 
 apiRoute = APIRouter()
-redis_conn = Redis(host="localhost", port=6379)
+redis_conn = Redis.from_url(os.getenv("REDIS_URL"))
 task_queue = Queue(connection=redis_conn)
 
 
