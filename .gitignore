@@ -4,6 +4,3 @@ __pycache__
 /tools
 /test
 /db
-.dockerignore
-Dockerfile
-docker-compose.yaml
