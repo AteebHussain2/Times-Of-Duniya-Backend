@@ -3,9 +3,11 @@ from config.article.agents import ArticleWriterAgents
 from config.article.tasks import ArticleWriterTasks
 from config.manager.agents import ManagerAgents
 from crewai import Crew, Process
+from prisma.enums import STATUS, ARTICLESTATUS, TYPE
+from prisma import Prisma
 from typing import List
-import requests
 import json
+import asyncio
 import os
 
 
@@ -15,7 +17,7 @@ if not GOOGLE_API_KEY:
 
 
 class ArticleWriterCrew:
-    def __init__(self, title: str, summary: str, sources: str):
+    def __init__(self, title: str, summary: str, sources: List[str] | str):
         self.topic_title = title
         self.summary = summary
         self.sources = sources
@@ -68,10 +70,10 @@ class ArticleWriterCrew:
         return res
 
 
-def run_article_writer_crew(
+async def run_article_writer_crew_async(
     title: str,
     summary: str,
-    sources: str,
+    sources: List[str] | str,
     jobId: int,
     categoryId: int,
     trigger: str,
@@ -84,11 +86,24 @@ def run_article_writer_crew(
         return "Environment varaibles not found for SECRET_KEY and FRONTEND_BASE_URL"
 
     DEFAULT_USAGE = {
+        "date": "0000-00-00T00:00:00Z",
         "total_tokens": 0,
         "prompt_tokens": 0,
         "completion_tokens": 0,
         "successful_requests": 0,
     }
+
+    db = Prisma()
+    await db.connect()
+
+    await db.job.update(
+        where={
+            "id": jobId,
+        },
+        data={
+            "status": STATUS.PROCESSING,
+        },
+    )
 
     try:
         # Initialize the Crew with provided parameters
@@ -102,78 +117,95 @@ def run_article_writer_crew(
         res = crew.run()
 
         data = getattr(res, "json_dict", None) or str(res)
-        article = clean_crewai_article(data)
+        raw_article = clean_crewai_article(data)
 
         metrics = getattr(res, "token_usage", None)
-        try:
-            usage_json = clean_usage_tokens(metrics) if metrics else DEFAULT_USAGE
-        except:
-            usage_json = DEFAULT_USAGE
+        usage_json = clean_usage_tokens(metrics) if metrics else DEFAULT_USAGE
 
         # Send topics to Next.js webhook if valid
-        if article:
-            try:
-                webhook_url = f"{FRONTEND_BASE_URL}/api/webhooks/article"
-                payload = {
-                    "categoryId": categoryId,
-                    "jobId": jobId,
-                    "data": article,
-                    "status": "COMPLETED",
-                    "trigger": trigger,
-                    "topicId": topicId,
-                    "usage": usage_json,
-                }
+        if raw_article and "article" in raw_article and raw_article["article"]:
+            article = raw_article["article"]
 
-                headers = {"authorization": f"Bearer {SECRET_KEY}"}
-
-                response = requests.post(
-                    webhook_url,
-                    json=payload,
-                    headers=headers,
-                    timeout=30,
-                )
-
-                response.raise_for_status()
-                print(f"Webhook success: {response.status_code}")
-            except Exception as e:
-                print(f"Webhook failed with error: {e}")
-                print("Payload was:", json.dumps(payload, indent=2))
-
-        else:
-            print("Skipping webhook due to empty article.")
-
-        return article
-
-    except Exception as e:
-        try:
-            webhook_url = f"{FRONTEND_BASE_URL}/api/webhooks/article"
-            payload = {
-                "categoryId": categoryId,
-                "jobId": jobId,
-                "data": [],
-                "status": "FAILED",
-                "trigger": trigger,
-                "topicId": topicId,
-                "error": str(e),
-                "usage": DEFAULT_USAGE,
-            }
-
-            headers = {"authorization": f"Bearer {SECRET_KEY}"}
-
-            response = requests.post(
-                webhook_url,
-                json=payload,
-                headers=headers,
-                timeout=30,
+            article_status = (
+                ARTICLESTATUS.APPROVED
+                if article
+                and len(article.get("content", "")) > 0
+                and article.get("status") == "APPROVED"
+                else ARTICLESTATUS.REJECTED
             )
 
-            response.raise_for_status()
-            print(f"Webhook success: {response.status_code}")
-        except Exception as e:
-            print(f"Webhook failed with error: {e}")
-            print("Payload was:", json.dumps(payload, indent=2))
-        print(f"run_article_writer_crew failed for topic {title}: {e}")
-        return {}
+            await db.article.create(
+                data={
+                    "topicId": topicId,
+                    "jobId": jobId,
+                    "categoryId": categoryId,
+                    "status": STATUS.COMPLETED,
+                    "title": article.get("title"),
+                    "summary": article.get("summary"),
+                    "content": article.get("content"),
+                    "tags": article.get("tags"),
+                    "source": article.get("source"),
+                    "articleStatus": article_status,
+                    "accuracy": raw_article.get("accuracy_score"),
+                    "reasoning": raw_article.get("reason"),
+                    "feedback": raw_article.get("feedback"),
+                }
+            )
+
+            print(f"✅ Article saved successfully!")
+
+            await db.job.update(
+                where={
+                    "id": jobId,
+                },
+                data={"status": STATUS.PENDING, "completedItems": {"increment": 1}},
+            )
+
+        else:
+            await db.job.update(
+                where={
+                    "id": jobId,
+                },
+                data={
+                    "status": STATUS.FAILED,
+                    "error": "Missing article in response from AI Agents",
+                },
+            )
+
+            print("Skipping webhook due to empty article.")
+
+        if usage_json and usage_json.get("total_tokens"):
+            await db.usagemetric.create(
+                data={
+                    "trigger": trigger,
+                    "date": usage_json.get("date"),
+                    "promptTokens": usage_json.get("prompt_tokens"),
+                    "completionTokens": usage_json.get("completion_tokens"),
+                    "totalTokens": usage_json.get("total_tokens"),
+                    "successfulRequests": usage_json.get("successful_requests"),
+                    "jobId": jobId,
+                }
+            )
+
+        return {"ok": True, "message": "Article saved"}
+
+    except Exception as e:
+        print(f"run_article_writer_crew failed for {title}: {e}")
+        await db.job.update(
+            where={
+                "id": jobId,
+            },
+            data={
+                "status": STATUS.FAILED,
+                "error": str(e),
+            },
+        )
+
+        return {"ok": False, "message": "No article generated"}
+
+    finally:
+        print("Closing Database Connection")
 
 
-# res is returning a json:
+def run_article_writer_crew(*args, **kwargs):
+    return asyncio.run(run_article_writer_crew_async(*args, **kwargs))

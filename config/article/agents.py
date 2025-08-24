@@ -11,7 +11,7 @@ class ArticleWriterAgents:
     def __init__(self):
         self.llm = LLM(
             api_key=os.getenv("GOOGLE_API_KEY"),
-            model="gemini/gemini-2.0-flash",
+            model="gemini/gemini-2.5-flash-lite",
             temperature=0.5,
         )
 

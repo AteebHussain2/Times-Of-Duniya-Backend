@@ -3,4 +3,5 @@ crewai[tools]
 python-dotenv
 pydantic
 google-generativeai
+prisma
 rq

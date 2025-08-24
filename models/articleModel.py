@@ -1,10 +1,11 @@
 from pydantic import BaseModel
+from typing import List
 
 class ArticleModel(BaseModel):
     title: str
     summary: str
     published: str
-    sources: str
+    sources: List[str] | str
     categoryId: int
     jobId: int
     trigger: str

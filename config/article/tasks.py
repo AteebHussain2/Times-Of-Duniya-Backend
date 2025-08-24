@@ -76,7 +76,7 @@ class ArticleWriterTasks:
             "https://punchng.com",
         ]
 
-    def gather_research_data(self, agent, topic_title: str, summary: str, source: str):
+    def gather_research_data(self, agent, topic_title: str, summary: str, source: List[str] | str):
         return Task(
             description=dedent(
                 f"""
@@ -147,7 +147,7 @@ class ArticleWriterTasks:
         )
 
     def editorial_review(
-        self, agent, topic_title: str, summary: str, source: str, context
+        self, agent, topic_title: str, summary: str, source: List[str] | str, context
     ):
         return Task(
             description=dedent(

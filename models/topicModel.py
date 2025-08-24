@@ -29,7 +29,13 @@ class TopicModel(BaseModel):
     min_topics: int | None = 1
     max_topics: int | None = 2
     time_duration: str | None = "24 hours"
+    excluded_titles: ExcludedTitles | None = []
+
+class RetryTopicModel(BaseModel):
+    min_topics: int | None = 1
+    max_topics: int | None = 2
+    time_duration: str | None = "24 hours"
     excluded_titles: List[str] | None = []
-    category: Category | None = []
-    trigger: str
+    categoryName: str
+    categoryId: int
     jobId: int

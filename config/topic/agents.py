@@ -10,7 +10,7 @@ class TopicReasearcherAgents:
     def __init__(self):
         self.llm = LLM(
             api_key=os.getenv("GOOGLE_API_KEY"),
-            model="gemini/gemini-2.0-flash",
+            model="gemini/gemini-2.5-flash-lite",
             temperature=0.5,
         )
 
@@ -31,4 +31,5 @@ class TopicReasearcherAgents:
             llm=self.llm,
             max_rpm=10,
             max_iter=5,
+            max_retries=1,
         )
