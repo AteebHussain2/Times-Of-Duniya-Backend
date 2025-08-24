@@ -6,7 +6,7 @@ from crewai import Crew, Process
 from prisma.enums import STATUS, ARTICLESTATUS, TYPE
 from prisma import Prisma
 from typing import List
-import json
+from lib.revalidate import revalidate
 import asyncio
 import os
 
@@ -105,6 +105,8 @@ async def run_article_writer_crew_async(
         },
     )
 
+    revalidate(trigger, STATUS.PROCESSING, TYPE.ARTICLE_GENERATION)
+
     try:
         # Initialize the Crew with provided parameters
         crew = ArticleWriterCrew(
@@ -161,6 +163,8 @@ async def run_article_writer_crew_async(
                 data={"status": STATUS.PENDING, "completedItems": {"increment": 1}},
             )
 
+            revalidate(trigger, STATUS.PENDING, TYPE.ARTICLE_GENERATION)
+
         else:
             await db.job.update(
                 where={
@@ -171,6 +175,8 @@ async def run_article_writer_crew_async(
                     "error": "Missing article in response from AI Agents",
                 },
             )
+
+            revalidate(trigger, STATUS.FAILED, TYPE.ARTICLE_GENERATION)
 
             print("Skipping webhook due to empty article.")
 
@@ -187,6 +193,8 @@ async def run_article_writer_crew_async(
                 }
             )
 
+            revalidate(trigger, STATUS.COMPLETED, TYPE.ARTICLE_GENERATION)
+
         return {"ok": True, "message": "Article saved"}
 
     except Exception as e:
@@ -200,6 +208,8 @@ async def run_article_writer_crew_async(
                 "error": str(e),
             },
         )
+
+        revalidate(trigger, STATUS.FAILED, TYPE.ARTICLE_GENERATION)
 
         return {"ok": False, "message": "No article generated"}
 

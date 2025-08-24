@@ -4,7 +4,8 @@ from config.topic.tasks import TopicReasearcherTasks
 from config.manager.agents import ManagerAgents
 from crewai import Crew, Process
 from typing import List
-from prisma.enums import STATUS
+from lib.revalidate import revalidate
+from prisma.enums import STATUS, TYPE
 from prisma import Prisma
 import asyncio
 import os
@@ -108,6 +109,8 @@ async def run_researcher_crew_async(
         },
     )
 
+    revalidate(trigger, STATUS.PROCESSING, TYPE.TOPIC_GENERATION)
+
     try:
         # Initialize the Crew with provided parameters
         crew = ResearcherCrew(
@@ -152,6 +155,8 @@ async def run_researcher_crew_async(
                 },
             )
 
+            revalidate(trigger, STATUS.PENDING, TYPE.TOPIC_GENERATION)
+
             print(
                 f"Successfully created {len(topics['root'])} topics for category {category}"
             )
@@ -166,6 +171,8 @@ async def run_researcher_crew_async(
                     "error": "Missing topics in response from AI Agents",
                 },
             )
+
+            revalidate(trigger, STATUS.FAILED, TYPE.TOPIC_GENERATION)
 
             print("Skipping run_research_crew due to missing empty topics.")
 
@@ -182,6 +189,8 @@ async def run_researcher_crew_async(
                 }
             )
 
+            revalidate(trigger, STATUS.COMPLETED, TYPE.TOPIC_GENERATION)
+
         return {"ok": True, "message": f"{len(topics['root'])} topics saved"}
 
     except Exception as e:
@@ -195,6 +204,8 @@ async def run_researcher_crew_async(
                 "error": str(e),
             },
         )
+
+        revalidate(trigger, STATUS.FAILED, TYPE.TOPIC_GENERATION)
 
         return {"ok": False, "message": f"No topics generated!"}
 

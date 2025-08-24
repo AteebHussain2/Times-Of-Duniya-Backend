@@ -81,7 +81,6 @@ async def create_topics(
                     TRIGGER.CRON,
                     job.id,
                 ),
-                result_ttl=0,
             ),
 
         return JSONResponse(
@@ -142,7 +141,6 @@ async def retry_topic(
                 job.trigger,
                 data["jobId"],
             ),
-            result_ttl=0,
             job_timeout=60 * 10,
         )
 
