@@ -7,7 +7,8 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Connect to Redis inside Docker (service name)
-redis_conn = Redis(host='redis', port=6379)
+# redis_conn = Redis(host='redis', port=6379)
+redis_conn = Redis.from_url(os.getenv("REDIS_URL"))
 
 # Start RQ worker
 queue = Queue(connection=redis_conn)
