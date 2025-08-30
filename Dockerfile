@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN prisma generate
 
 # Run worker by default (can override in docker-compose)
-CMD ["python", "worker.py"]
+# CMD ["python", "worker.py"]
