@@ -15,13 +15,13 @@ from rq import Queue
 
 # Create Topics with AI Agents
 from config.topic.create_topics import run_researcher_crew
-from schemas.topicSchema import TopicEntity, RetryTopicEntity
-from models.topicModel import TopicModel, RetryTopicModel
+from schemas.topicSchema import TopicEntity, RetryTopicEntity, SingleTopicEntity
+from models.topicModel import TopicModel, RetryTopicModel, SingleTopicModel
 
 # Create Articles with AI Agents using Topics
 from config.article.create_article import run_article_writer_crew
-from schemas.articleSchema import ArticleEntity
-from models.articleModel import ArticleModel
+from schemas.articleSchema import ArticleEntity, ManualArticleEntity
+from models.articleModel import ArticleModel, ManualArticleModel
 
 
 db = Prisma()
@@ -181,6 +181,15 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
             },
         )
 
+        await db.topic.update(
+            where={
+                "id": data["topicId"],
+            },
+            data={
+                "status": STATUS.QUEUED,
+            },
+        )
+
         task_queue.enqueue(
             run_article_writer_crew,
             args=(
@@ -204,6 +213,129 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
 
     except Exception as e:
         print("@@ERROR:", e)
+        return JSONResponse(
+            content={"message": "Invalid request body"}, status_code=400
+        )
+
+
+@apiRoute.post("/create-manual-article")
+async def create_article(
+    authorization: str = Header(None), body: ManualArticleModel = None
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    secret = authorization.split(" ")[1]
+    if not isValidApiKey(secret):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    if not body:
+        return JSONResponse(
+            content={"message": "Invalid request body"}, status_code=400
+        )
+
+    try:
+        data = ManualArticleEntity(body)
+
+        await db.job.update(
+            where={
+                "id": data["jobId"],
+                "userId": data["userId"],
+            },
+            data={
+                "status": STATUS.QUEUED,
+                "type": TYPE.ARTICLE_GENERATION,
+            },
+        )
+
+        await db.topic.update(
+            where={
+                "id": data["topicId"],
+            },
+            data={
+                "status": STATUS.QUEUED,
+            },
+        )
+
+        task_queue.enqueue(
+            run_article_writer_crew,
+            args=(
+                data["title"],
+                data["summary"],
+                data["sources"],
+                data["jobId"],
+                data["categoryId"],
+                data["trigger"],
+                data["topicId"],
+                data["prompt"],
+            ),
+            job_timeout=60 * 15,
+        )
+
+        return JSONResponse(
+            content={
+                "message": "Successfully added process to queue",
+            },
+            status_code=200,
+        )
+
+    except Exception as e:
+        print("@@ERROR:", e)
+        return JSONResponse(
+            content={"message": "Invalid request body"}, status_code=400
+        )
+
+
+@apiRoute.post("/create-topic")
+async def create_topics(
+    authorization: str = Header(None),
+    body: SingleTopicModel = None,
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    secret = authorization.split(" ")[1]
+    if not isValidApiKey(secret):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    try:
+        data = SingleTopicEntity(body)
+        category = await db.category.find_unique(where={"id": data["categoryId"]})
+
+        job = await db.job.create(
+            data={
+                "userId": data["userId"],
+                "categoryId": category.id,
+                "type": TYPE.TOPIC_GENERATION,
+                "trigger": TRIGGER.MANUAL,
+                "status": STATUS.QUEUED,
+            },
+        )
+
+        task_queue.enqueue(
+            run_researcher_crew,
+            args=(
+                data["min_topics"],
+                data["max_topics"],
+                data["time_duration"],
+                [],
+                category.name,
+                category.id,
+                TRIGGER.MANUAL,
+                job.id,
+                data["prompt"],
+            ),
+        ),
+
+        return JSONResponse(
+            content={
+                "message": "Successfully added process to queue",
+            },
+            status_code=200,
+        )
+
+    except Exception as e:
+        print(e)
         return JSONResponse(
             content={"message": "Invalid request body"}, status_code=400
         )

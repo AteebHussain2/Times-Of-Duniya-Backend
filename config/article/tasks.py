@@ -76,7 +76,9 @@ class ArticleWriterTasks:
             "https://punchng.com",
         ]
 
-    def gather_research_data(self, agent, topic_title: str, summary: str, source: List[str] | str):
+    def gather_research_data(
+        self, agent, topic_title: str, summary: str, source: List[str] | str, prompt
+    ):
         return Task(
             description=dedent(
                 f"""
@@ -84,6 +86,8 @@ class ArticleWriterTasks:
             **Description**: Perform a comprehensive internet investigation for the topic "{topic_title}". 
             Collect credible facts, expert quotes, stats, background context, and reliable source URLs. 
             Do not include speculative, outdated, or low-credibility content.
+
+            **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
 
             **Parameters**:
             - Topic Title: {topic_title}
@@ -108,7 +112,9 @@ class ArticleWriterTasks:
             ),
         )
 
-    def write_news_article(self, agent, topic_title: str, summary: str, context):
+    def write_news_article(
+        self, agent, topic_title: str, summary: str, context, prompt
+    ):
         return Task(
             description=dedent(
                 f"""
@@ -120,6 +126,8 @@ class ArticleWriterTasks:
             - A 1000 - 3800 characters body section
             - relevant tags, each seperated by commas in a list
             - A list of source URLs used in research
+
+            **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
 
             **Parameters**:
             - Topic Title: {topic_title}
@@ -147,7 +155,13 @@ class ArticleWriterTasks:
         )
 
     def editorial_review(
-        self, agent, topic_title: str, summary: str, source: List[str] | str, context
+        self,
+        agent,
+        topic_title: str,
+        summary: str,
+        source: List[str] | str,
+        context,
+        prompt,
     ):
         return Task(
             description=dedent(
@@ -159,6 +173,8 @@ class ArticleWriterTasks:
             Give it an accuracy score from 0 to 100, where 100 is perfect accuracy.
             Provide detailed feedback on any issues, and if rejected, explain why it does not meet standards
             
+            **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
+
             **You must output the FULL article JSON plus review details.**
             Return JSON like:
             {{

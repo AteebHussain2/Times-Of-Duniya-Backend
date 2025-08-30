@@ -31,6 +31,7 @@ class TopicModel(BaseModel):
     time_duration: str | None = "24 hours"
     excluded_titles: ExcludedTitles | None = []
 
+
 class RetryTopicModel(BaseModel):
     min_topics: int | None = 1
     max_topics: int | None = 2
@@ -39,3 +40,13 @@ class RetryTopicModel(BaseModel):
     categoryName: str
     categoryId: int
     jobId: int
+
+
+class SingleTopicModel(BaseModel):
+    min_topics: int | None = 1
+    max_topics: int | None = 2
+    time_duration: str | None = "24 hours"
+    trigger: str
+    categoryId: int
+    prompt: str | None = ""
+    userId: str

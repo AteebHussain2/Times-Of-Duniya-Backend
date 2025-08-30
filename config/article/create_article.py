@@ -17,10 +17,11 @@ if not GOOGLE_API_KEY:
 
 
 class ArticleWriterCrew:
-    def __init__(self, title: str, summary: str, sources: List[str] | str):
+    def __init__(self, title: str, summary: str, sources: List[str] | str, prompt: str):
         self.topic_title = title
         self.summary = summary
         self.sources = sources
+        self.prompt = prompt
 
     def run(self):
         # Defining custom agents and tasks in agents.py and tasks.py
@@ -35,10 +36,10 @@ class ArticleWriterCrew:
 
         # Custom Tasks for writing articles
         research_task = tasks.gather_research_data(
-            informant, self.topic_title, self.summary, self.sources
+            informant, self.topic_title, self.summary, self.sources, self.prompt
         )
         write_task = tasks.write_news_article(
-            news_mentalist, self.topic_title, self.summary, [research_task]
+            news_mentalist, self.topic_title, self.summary, [research_task], self.prompt
         )
         review_task = tasks.editorial_review(
             final_editor,
@@ -46,6 +47,7 @@ class ArticleWriterCrew:
             self.sources,
             self.summary,
             [write_task],
+            self.prompt,
         )
 
         NewsLetterCrew = Crew(
@@ -78,6 +80,7 @@ async def run_article_writer_crew_async(
     categoryId: int,
     trigger: str,
     topicId: int,
+    prompt: str,
 ):
     SECRET_KEY = os.getenv("SECRET_KEY")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL")
@@ -105,6 +108,15 @@ async def run_article_writer_crew_async(
         },
     )
 
+    await db.topic.update(
+        where={
+            "id": topicId,
+        },
+        data={
+            "status": STATUS.PROCESSING,
+        },
+    )
+
     revalidate(trigger, STATUS.PROCESSING, TYPE.ARTICLE_GENERATION)
 
     try:
@@ -113,6 +125,7 @@ async def run_article_writer_crew_async(
             title,
             summary,
             sources,
+            prompt,
         )
 
         # Run the Crew to get topics
@@ -163,6 +176,15 @@ async def run_article_writer_crew_async(
                 data={"status": STATUS.PENDING, "completedItems": {"increment": 1}},
             )
 
+            await db.topic.update(
+                where={
+                    "id": topicId,
+                },
+                data={
+                    "status": STATUS.COMPLETED,
+                },
+            )
+
             revalidate(trigger, STATUS.PENDING, TYPE.ARTICLE_GENERATION)
 
         else:
@@ -173,6 +195,15 @@ async def run_article_writer_crew_async(
                 data={
                     "status": STATUS.FAILED,
                     "error": "Missing article in response from AI Agents",
+                },
+            )
+
+            await db.topic.update(
+                where={
+                    "id": topicId,
+                },
+                data={
+                    "status": STATUS.FAILED,
                 },
             )
 
@@ -206,6 +237,15 @@ async def run_article_writer_crew_async(
             data={
                 "status": STATUS.FAILED,
                 "error": str(e),
+            },
+        )
+
+        await db.topic.update(
+            where={
+                "id": topicId,
+            },
+            data={
+                "status": STATUS.FAILED,
             },
         )
 

@@ -80,6 +80,7 @@ class TopicReasearcherTasks:
         min_topics: int,
         max_topics: int,
         time_duration: str,
+        prompt: str = "",
     ):
         exclusion = (
             "\n".join(f"- {title}" for title in exclude_titles)
@@ -92,6 +93,8 @@ class TopicReasearcherTasks:
             **Task**: Identify Trending News Topics
             **Description**: Discover {min_topics} to {max_topics} highly relevant and trending news topics in the category **{category}**. 
             Only select topics that are less than {time_duration} old, Today is {datetime.now()}, have strong online engagement, and are not already covered by our platform. Use online sources like Google News, Twitter/X, Reddit, and top global news platforms.
+
+            **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
 
             Return a JSON array like:
             [

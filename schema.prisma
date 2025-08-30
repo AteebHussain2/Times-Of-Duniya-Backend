@@ -130,6 +130,7 @@ model View {
 }
 
 model Job {
+  userId         String?
   id             Int           @id @default(autoincrement())
   categoryId     Int
   type           TYPE

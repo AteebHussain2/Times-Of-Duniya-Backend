@@ -23,12 +23,14 @@ class ResearcherCrew:
         min_topics: int = 1,
         max_topics: int = 2,
         time_duration: str = "24 hours",
+        prompt: str = "",
     ):
         self.category = category
         self.excluded_titles = excluded_titles
         self.min_topics = min_topics
         self.max_topics = max_topics
         self.time_duration = time_duration
+        self.prompt = prompt
 
     def run(self):
         # Defining custom agents and tasks in agents.py and tasks.py
@@ -47,6 +49,7 @@ class ResearcherCrew:
             self.min_topics,
             self.max_topics,
             self.time_duration,
+            self.prompt,
         )
 
         # Fetch Trending Topics
@@ -82,6 +85,7 @@ async def run_researcher_crew_async(
     categoryId: int,
     trigger: str,
     jobId: int,
+    prompt: str = "",
 ):
     SECRET_KEY = os.getenv("SECRET_KEY")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL")
@@ -119,6 +123,7 @@ async def run_researcher_crew_async(
             min_topics=min_topics,
             max_topics=max_topics,
             time_duration=time_duration,
+            prompt=prompt,
         )
 
         # Run the Crew to get topics
