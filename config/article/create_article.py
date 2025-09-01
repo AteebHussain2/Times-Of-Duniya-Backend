@@ -73,6 +73,7 @@ class ArticleWriterCrew:
 
 
 async def run_article_writer_crew_async(
+    api_key: str,
     title: str,
     summary: str,
     sources: List[str] | str,
@@ -80,8 +81,13 @@ async def run_article_writer_crew_async(
     categoryId: int,
     trigger: str,
     topicId: int,
-    prompt: str,
+    prompt: str = "",
 ):
+    # Set or overwrite an environment variable
+    if api_key:
+        os.environ["GOOGLE_API_KEY"] = api_key
+        os.environ["GEMINI_API_KEY"] = api_key
+
     SECRET_KEY = os.getenv("SECRET_KEY")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL")
 

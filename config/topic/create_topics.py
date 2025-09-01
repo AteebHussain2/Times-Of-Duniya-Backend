@@ -77,6 +77,7 @@ class ResearcherCrew:
 
 
 async def run_researcher_crew_async(
+    api_key: str,
     min_topics: int,
     max_topics: int,
     time_duration: str,
@@ -87,6 +88,11 @@ async def run_researcher_crew_async(
     jobId: int,
     prompt: str = "",
 ):
+    # Set or overwrite an environment variable
+    if api_key:
+        os.environ["GOOGLE_API_KEY"] = api_key
+        os.environ["GEMINI_API_KEY"] = api_key
+
     SECRET_KEY = os.getenv("SECRET_KEY")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL")
 

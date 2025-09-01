@@ -12,7 +12,6 @@ class ArticleWriterAgents:
         self.llm = LLM(
             api_key=os.getenv("GOOGLE_API_KEY"),
             model="gemini/gemini-2.5-flash-lite",
-            temperature=0.5,
         )
 
     def informant(self):
@@ -30,8 +29,9 @@ class ArticleWriterAgents:
             tools=[search_tool],
             verbose=True,
             llm=self.llm,
-            max_rpm=10,
+            max_rpm=15,
             max_iter=5,
+            max_tokens=250000,
         )
 
     def news_mentalist(self):
@@ -48,8 +48,9 @@ class ArticleWriterAgents:
             allow_delegation=True,
             verbose=True,
             llm=self.llm,
-            max_rpm=10,
-            max_iter=3,
+            max_rpm=15,
+            max_iter=5,
+            max_tokens=250000,
         )
 
     def final_editor(self):
@@ -66,6 +67,7 @@ class ArticleWriterAgents:
             allow_delegation=False,
             verbose=True,
             llm=self.llm,
-            max_rpm=10,
-            max_iter=2,
+            max_rpm=15,
+            max_iter=5,
+            max_tokens=250000,
         )

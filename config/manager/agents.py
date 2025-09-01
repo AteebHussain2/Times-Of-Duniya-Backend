@@ -12,7 +12,7 @@ class ManagerAgents:
     def __init__(self):
         self.llm = LLM(
             api_key=GOOGLE_API_KEY,
-            model="gemini/gemini-2.0-flash",
+            model="gemini/gemini-2.5-flash",
             temperature=0.5,
         )
 
@@ -31,4 +31,5 @@ class ManagerAgents:
             llm=self.llm,
             max_rpm=10,
             max_iter=5,
+            max_tokens=250000,
         )

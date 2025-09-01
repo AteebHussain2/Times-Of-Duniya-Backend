@@ -73,6 +73,7 @@ async def create_topics(
             task_queue.enqueue(
                 run_researcher_crew,
                 args=(
+                    os.getenv("GOOGLE_API_KEY_1"),
                     data["min_topics"],
                     data["max_topics"],
                     data["time_duration"],
@@ -130,9 +131,14 @@ async def retry_topic(
             },
         )
 
+        api_key = os.getenv(
+            "GOOGLE_API_KEY_1" if job.trigger == TRIGGER.CRON else "GOOGLE_API_KEY_2"
+        )
+
         task_queue.enqueue(
             run_researcher_crew,
             args=(
+                api_key,
                 data["min_topics"],
                 data["max_topics"],
                 data["time_duration"],
@@ -191,9 +197,16 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
             },
         )
 
+        api_key = os.getenv(
+            "GOOGLE_API_KEY_1"
+            if data["trigger"] == TRIGGER.CRON
+            else "GOOGLE_API_KEY_2"
+        )
+
         task_queue.enqueue(
             run_article_writer_crew,
             args=(
+                api_key,
                 data["title"],
                 data["summary"],
                 data["sources"],
@@ -220,7 +233,7 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
 
 
 @apiRoute.post("/create-manual-article")
-async def create_article(
+async def create_manual_article(
     authorization: str = Header(None), body: ManualArticleModel = None
 ):
     if not authorization or not authorization.startswith("Bearer "):
@@ -258,9 +271,16 @@ async def create_article(
             },
         )
 
+        api_key = os.getenv(
+            "GOOGLE_API_KEY_1"
+            if data["trigger"] == TRIGGER.CRON
+            else "GOOGLE_API_KEY_2"
+        )
+
         task_queue.enqueue(
             run_article_writer_crew,
             args=(
+                api_key,
                 data["title"],
                 data["summary"],
                 data["sources"],
@@ -288,7 +308,7 @@ async def create_article(
 
 
 @apiRoute.post("/create-topic")
-async def create_topics(
+async def create_topic(
     authorization: str = Header(None),
     body: SingleTopicModel = None,
 ):
@@ -316,6 +336,7 @@ async def create_topics(
         task_queue.enqueue(
             run_researcher_crew,
             args=(
+                os.getenv("GOOGLE_API_KEY_2"),
                 data["min_topics"],
                 data["max_topics"],
                 data["time_duration"],
