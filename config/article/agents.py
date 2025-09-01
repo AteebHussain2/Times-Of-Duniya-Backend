@@ -29,7 +29,7 @@ class ArticleWriterAgents:
             tools=[search_tool],
             verbose=True,
             llm=self.llm,
-            max_rpm=15,
+            max_rpm=10,
             max_iter=5,
             max_tokens=250000,
         )
@@ -48,7 +48,7 @@ class ArticleWriterAgents:
             allow_delegation=True,
             verbose=True,
             llm=self.llm,
-            max_rpm=15,
+            max_rpm=10,
             max_iter=5,
             max_tokens=250000,
         )
@@ -67,7 +67,7 @@ class ArticleWriterAgents:
             allow_delegation=False,
             verbose=True,
             llm=self.llm,
-            max_rpm=15,
+            max_rpm=10,
             max_iter=5,
             max_tokens=250000,
         )

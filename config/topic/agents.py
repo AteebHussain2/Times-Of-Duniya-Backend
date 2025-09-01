@@ -29,7 +29,7 @@ class TopicReasearcherAgents:
             tools=[search_tool],
             verbose=True,
             llm=self.llm,
-            max_rpm=15,
+            max_rpm=10,
             max_iter=5,
             max_retries=1,
             max_tokens=250000,
