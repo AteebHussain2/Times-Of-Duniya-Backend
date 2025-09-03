@@ -77,7 +77,6 @@ class ResearcherCrew:
 
 
 async def run_researcher_crew_async(
-    api_key: str,
     min_topics: int,
     max_topics: int,
     time_duration: str,
@@ -87,6 +86,7 @@ async def run_researcher_crew_async(
     trigger: str,
     jobId: int,
     prompt: str = "",
+    api_key: str = "",
 ):
     # Set or overwrite an environment variable
     if api_key:
@@ -179,13 +179,11 @@ async def run_researcher_crew_async(
                 },
                 data={
                     "status": STATUS.FAILED,
-                    "error": "Missing topics in response from AI Agents",
+                    "error": f"Missing topics in response from AI Agents\n**ERROR:**\t\t{res.json_dict}",
                 },
             )
 
             revalidate(trigger, STATUS.FAILED, TYPE.TOPIC_GENERATION)
-
-            print("Skipping run_research_crew due to missing empty topics.")
 
         if usage_json and usage_json.get("total_tokens"):
             await db.usagemetric.create(

@@ -73,7 +73,6 @@ class ArticleWriterCrew:
 
 
 async def run_article_writer_crew_async(
-    api_key: str,
     title: str,
     summary: str,
     sources: List[str] | str,
@@ -82,6 +81,7 @@ async def run_article_writer_crew_async(
     trigger: str,
     topicId: int,
     prompt: str = "",
+    api_key: str = "",
 ):
     # Set or overwrite an environment variable
     if api_key:
@@ -200,7 +200,7 @@ async def run_article_writer_crew_async(
                 },
                 data={
                     "status": STATUS.FAILED,
-                    "error": "Missing article in response from AI Agents",
+                    "error": f"Missing article in response from AI Agents\n**ERROR:**\t\t{res.json_dict}",
                 },
             )
 
@@ -214,8 +214,6 @@ async def run_article_writer_crew_async(
             )
 
             revalidate(trigger, STATUS.FAILED, TYPE.ARTICLE_GENERATION)
-
-            print("Skipping webhook due to empty article.")
 
         if usage_json and usage_json.get("total_tokens"):
             await db.usagemetric.create(

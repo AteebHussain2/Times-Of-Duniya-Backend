@@ -4,9 +4,8 @@ from lib.validate_key import isValidApiKey
 from fastapi import APIRouter, Header, FastAPI
 from contextlib import asynccontextmanager
 
-from prisma import Prisma
 from prisma.enums import TYPE, TRIGGER, STATUS
-import json
+from prisma import Prisma
 import os
 
 # Queue for AI Agents
@@ -20,8 +19,12 @@ from models.topicModel import TopicModel, RetryTopicModel, SingleTopicModel
 
 # Create Articles with AI Agents using Topics
 from config.article.create_article import run_article_writer_crew
-from schemas.articleSchema import ArticleEntity, ManualArticleEntity
-from models.articleModel import ArticleModel, ManualArticleModel
+from schemas.articleSchema import (
+    ArticleEntity,
+    RegenerateArticleEntity,
+    ManualArticleEntity,
+)
+from models.articleModel import ArticleModel, RegenerateArticleModel, ManualArticleModel
 
 
 db = Prisma()
@@ -38,8 +41,8 @@ async def lifespan(app: FastAPI):
 
 apiRoute = APIRouter(lifespan=lifespan)
 
-# redis_conn = Redis(host="localhost", port=6379, db=0)
-redis_conn = Redis.from_url(os.getenv("REDIS_URL"))
+redis_conn = Redis(host="localhost", port=6379, db=0)
+# redis_conn = Redis.from_url(os.getenv("REDIS_URL"))
 task_queue = Queue(connection=redis_conn)
 
 
@@ -73,7 +76,6 @@ async def create_topics(
             task_queue.enqueue(
                 run_researcher_crew,
                 args=(
-                    os.getenv("GOOGLE_API_KEY_1"),
                     data["min_topics"],
                     data["max_topics"],
                     data["time_duration"],
@@ -82,6 +84,8 @@ async def create_topics(
                     category.id,
                     TRIGGER.CRON,
                     job.id,
+                    "",
+                    os.getenv("GOOGLE_API_KEY_1"),
                 ),
             ),
 
@@ -138,7 +142,6 @@ async def retry_topic(
         task_queue.enqueue(
             run_researcher_crew,
             args=(
-                api_key,
                 data["min_topics"],
                 data["max_topics"],
                 data["time_duration"],
@@ -147,6 +150,8 @@ async def retry_topic(
                 data["categoryId"],
                 job.trigger,
                 data["jobId"],
+                "",
+                api_key,
             ),
             job_timeout=60 * 10,
         )
@@ -185,6 +190,7 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
             data={
                 "status": STATUS.QUEUED,
                 "type": TYPE.ARTICLE_GENERATION,
+                "error": "",
             },
         )
 
@@ -206,7 +212,6 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
         task_queue.enqueue(
             run_article_writer_crew,
             args=(
-                api_key,
                 data["title"],
                 data["summary"],
                 data["sources"],
@@ -214,6 +219,88 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
                 data["categoryId"],
                 data["trigger"],
                 data["topicId"],
+                "",
+                api_key,
+            ),
+            job_timeout=60 * 15,
+        )
+
+        return JSONResponse(
+            content={
+                "message": "Successfully added process to queue",
+            },
+            status_code=200,
+        )
+
+    except Exception as e:
+        print("@@ERROR:", e)
+        return JSONResponse(
+            content={"message": "Invalid request body"}, status_code=400
+        )
+
+
+@apiRoute.post("/regenerate-article")
+async def regenerate_article(
+    authorization: str = Header(None), body: RegenerateArticleModel = None
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    secret = authorization.split(" ")[1]
+    if not isValidApiKey(secret):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    if not body:
+        return JSONResponse(
+            content={"message": "Invalid request body"}, status_code=400
+        )
+
+    try:
+        data = RegenerateArticleEntity(body)
+
+        await db.article.delete(
+            where={"id": data["articleId"], "topicId": data["topicId"]}
+        )
+
+        await db.job.update(
+            where={
+                "id": data["jobId"],
+            },
+            data={
+                "status": STATUS.QUEUED,
+                "type": TYPE.ARTICLE_GENERATION,
+                "completedItems": {"decrement": 1},
+                "error": "",
+            },
+        )
+
+        await db.topic.update(
+            where={
+                "id": data["topicId"],
+            },
+            data={
+                "status": STATUS.QUEUED,
+            },
+        )
+
+        api_key = os.getenv(
+            "GOOGLE_API_KEY_1"
+            if data["trigger"] == TRIGGER.CRON
+            else "GOOGLE_API_KEY_2"
+        )
+
+        task_queue.enqueue(
+            run_article_writer_crew,
+            args=(
+                data["title"],
+                data["summary"],
+                data["sources"],
+                data["jobId"],
+                data["categoryId"],
+                data["trigger"],
+                data["topicId"],
+                "",
+                api_key,
             ),
             job_timeout=60 * 15,
         )
@@ -259,6 +346,7 @@ async def create_manual_article(
             data={
                 "status": STATUS.QUEUED,
                 "type": TYPE.ARTICLE_GENERATION,
+                "error": "",
             },
         )
 
@@ -280,7 +368,6 @@ async def create_manual_article(
         task_queue.enqueue(
             run_article_writer_crew,
             args=(
-                api_key,
                 data["title"],
                 data["summary"],
                 data["sources"],
@@ -289,6 +376,7 @@ async def create_manual_article(
                 data["trigger"],
                 data["topicId"],
                 data["prompt"],
+                api_key,
             ),
             job_timeout=60 * 15,
         )
@@ -336,7 +424,6 @@ async def create_topic(
         task_queue.enqueue(
             run_researcher_crew,
             args=(
-                os.getenv("GOOGLE_API_KEY_2"),
                 data["min_topics"],
                 data["max_topics"],
                 data["time_duration"],
@@ -346,6 +433,7 @@ async def create_topic(
                 TRIGGER.MANUAL,
                 job.id,
                 data["prompt"],
+                os.getenv("GOOGLE_API_KEY_2"),
             ),
         ),
 
