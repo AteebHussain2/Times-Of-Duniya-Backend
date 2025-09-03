@@ -41,8 +41,8 @@ async def lifespan(app: FastAPI):
 
 apiRoute = APIRouter(lifespan=lifespan)
 
-redis_conn = Redis(host="localhost", port=6379, db=0)
-# redis_conn = Redis.from_url(os.getenv("REDIS_URL"))
+# redis_conn = Redis(host="localhost", port=6379, db=0)
+redis_conn = Redis.from_url(os.getenv("REDIS_URL"))
 task_queue = Queue(connection=redis_conn)
 
 
