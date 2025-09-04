@@ -23,8 +23,14 @@ from schemas.articleSchema import (
     ArticleEntity,
     RegenerateArticleEntity,
     ManualArticleEntity,
+    RegenerateManualArticleEntity,
 )
-from models.articleModel import ArticleModel, RegenerateArticleModel, ManualArticleModel
+from models.articleModel import (
+    ArticleModel,
+    RegenerateArticleModel,
+    ManualArticleModel,
+    RegenerateManualArticleModel,
+)
 
 
 db = Prisma()
@@ -85,7 +91,7 @@ async def create_topics(
                     TRIGGER.CRON,
                     job.id,
                     "",
-                    os.getenv("GOOGLE_API_KEY_1"),
+                    os.getenv("GROQ_API_KEY_1"),
                 ),
             ),
 
@@ -136,7 +142,7 @@ async def retry_topic(
         )
 
         api_key = os.getenv(
-            "GOOGLE_API_KEY_1" if job.trigger == TRIGGER.CRON else "GOOGLE_API_KEY_2"
+            "GROQ_API_KEY_1" if job.trigger == TRIGGER.CRON else "GROQ_API_KEY_2"
         )
 
         task_queue.enqueue(
@@ -153,7 +159,6 @@ async def retry_topic(
                 "",
                 api_key,
             ),
-            job_timeout=60 * 10,
         )
 
         return JSONResponse(
@@ -204,9 +209,9 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
         )
 
         api_key = os.getenv(
-            "GOOGLE_API_KEY_1"
+            "GROQ_API_KEY_1"
             if data["trigger"] == TRIGGER.CRON
-            else "GOOGLE_API_KEY_2"
+            else "GROQ_API_KEY_2"
         )
 
         task_queue.enqueue(
@@ -222,7 +227,7 @@ async def create_article(authorization: str = Header(None), body: ArticleModel =
                 "",
                 api_key,
             ),
-            job_timeout=60 * 15,
+            job_timeout=60 * 10,
         )
 
         return JSONResponse(
@@ -284,9 +289,9 @@ async def regenerate_article(
         )
 
         api_key = os.getenv(
-            "GOOGLE_API_KEY_1"
+            "GROQ_API_KEY_1"
             if data["trigger"] == TRIGGER.CRON
-            else "GOOGLE_API_KEY_2"
+            else "GROQ_API_KEY_2"
         )
 
         task_queue.enqueue(
@@ -302,7 +307,7 @@ async def regenerate_article(
                 "",
                 api_key,
             ),
-            job_timeout=60 * 15,
+            job_timeout=60 * 10,
         )
 
         return JSONResponse(
@@ -360,9 +365,9 @@ async def create_manual_article(
         )
 
         api_key = os.getenv(
-            "GOOGLE_API_KEY_1"
+            "GROQ_API_KEY_1"
             if data["trigger"] == TRIGGER.CRON
-            else "GOOGLE_API_KEY_2"
+            else "GROQ_API_KEY_2"
         )
 
         task_queue.enqueue(
@@ -378,7 +383,90 @@ async def create_manual_article(
                 data["prompt"],
                 api_key,
             ),
-            job_timeout=60 * 15,
+            job_timeout=60 * 10,
+        )
+
+        return JSONResponse(
+            content={
+                "message": "Successfully added process to queue",
+            },
+            status_code=200,
+        )
+
+    except Exception as e:
+        print("@@ERROR:", e)
+        return JSONResponse(
+            content={"message": "Invalid request body"}, status_code=400
+        )
+
+
+@apiRoute.post("/regenerate-manual-article")
+async def regenerate_manual_article(
+    authorization: str = Header(None), body: RegenerateManualArticleModel = None
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    secret = authorization.split(" ")[1]
+    if not isValidApiKey(secret):
+        return JSONResponse(content={"message": "Unauthorized"}, status_code=401)
+
+    if not body:
+        return JSONResponse(
+            content={"message": "Invalid request body"}, status_code=400
+        )
+    
+    print("@@@BODY: ", body)
+
+    try:
+        data = RegenerateManualArticleEntity(body)
+
+        await db.article.delete(
+            where={"id": data["articleId"], "topicId": data["topicId"]}
+        )
+
+        await db.job.update(
+            where={
+                "id": data["jobId"],
+                "userId": data["userId"],
+            },
+            data={
+                "status": STATUS.QUEUED,
+                "type": TYPE.ARTICLE_GENERATION,
+                "error": "",
+                "completedItems": {"decrement": 1},
+            },
+        )
+
+        await db.topic.update(
+            where={
+                "id": data["topicId"],
+            },
+            data={
+                "status": STATUS.QUEUED,
+            },
+        )
+
+        api_key = os.getenv(
+            "GROQ_API_KEY_1"
+            if data["trigger"] == TRIGGER.CRON
+            else "GROQ_API_KEY_2"
+        )
+
+        task_queue.enqueue(
+            run_article_writer_crew,
+            args=(
+                data["title"],
+                data["summary"],
+                data["sources"],
+                data["jobId"],
+                data["categoryId"],
+                data["trigger"],
+                data["topicId"],
+                data["prompt"],
+                api_key,
+            ),
+            job_timeout=60 * 10,
         )
 
         return JSONResponse(
@@ -433,7 +521,7 @@ async def create_topic(
                 TRIGGER.MANUAL,
                 job.id,
                 data["prompt"],
-                os.getenv("GOOGLE_API_KEY_2"),
+                os.getenv("GROQ_API_KEY_2"),
             ),
         ),
 

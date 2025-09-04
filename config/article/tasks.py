@@ -1,5 +1,6 @@
 from typing import List, Literal
 from pydantic import BaseModel
+from datetime import datetime
 from textwrap import dedent
 from crewai import Task
 
@@ -88,6 +89,7 @@ class ArticleWriterTasks:
             Do not include speculative, outdated, or low-credibility content.
 
             **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
+            **CURRENT DATE AND TIME**: {datetime.now().isoformat()}
 
             **Parameters**:
             - Topic Title: {topic_title}
@@ -128,6 +130,7 @@ class ArticleWriterTasks:
             - A list of source URLs used in research
 
             **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
+            **CURRENT DATE AND TIME**: {datetime.now().isoformat()}
 
             **Parameters**:
             - Topic Title: {topic_title}
@@ -169,18 +172,18 @@ class ArticleWriterTasks:
             **Task**: Final Editorial Review
             **Description**: Evaluate the drafted article for "{topic_title}". 
             Ensure it meets journalistic standards — objectivity, accuracy, relevance, clarity, on-brand tone, and newsworthiness.
-            Approve only if it is a publishable news article — not a blog post or opinion piece.
             Give it an accuracy score from 0 to 100, where 100 is perfect accuracy.
             Provide detailed feedback on any issues, and if rejected, explain why it does not meet standards
             
             **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
+            **CURRENT DATE AND TIME**: {datetime.now().isoformat()}
 
             **You must output the FULL article JSON plus review details.**
             Return JSON like:
             {{
               "accuracy_score": 0 to 100, e.g. 85,
               "reason": "short reason"
-              "status": "approved" | "rejected",
+              "status": "APPROVED" | "REJECTED",
               "feedback": "detailed explanation",
               "article": {{
                 "title": "...",
@@ -195,8 +198,6 @@ class ArticleWriterTasks:
             - Topic Title: {topic_title}
             - Summary: {summary}
             - Original Source: {source}
-            - Reliable sources:
-            {self.__reliable_sources()}
 
             **NOTE**: Do NOT write the names of sources in sources list, but ONLY the URLs of sources
             **NOTE**: Make sure that both values and keys are in double quotes in the JSON output

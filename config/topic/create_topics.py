@@ -2,6 +2,7 @@ from lib.clean_crewai_response import clean_crewai_topics, clean_usage_tokens
 from config.topic.agents import TopicReasearcherAgents
 from config.topic.tasks import TopicReasearcherTasks
 from config.manager.agents import ManagerAgents
+from crewai.memory import EntityMemory, ShortTermMemory
 from crewai import Crew, Process
 from typing import List
 from lib.revalidate import revalidate
@@ -52,6 +53,14 @@ class ResearcherCrew:
             self.prompt,
         )
 
+        embedder_cfg = {
+            "provider": "google",
+            "config": {
+                "api_key": GOOGLE_API_KEY,
+                "model": "text-embedding-004",
+            },
+        }
+
         # Fetch Trending Topics
         CrewInstance = Crew(
             agents=[expert_researcher],
@@ -61,14 +70,8 @@ class ResearcherCrew:
             verbose=True,
             manager_agent=manager_agent,
             max_rpm=15,
-            memory=True,
-            embedder={
-                "provider": "google",
-                "config": {
-                    "api_key": GOOGLE_API_KEY,
-                    "model": "text-embedding-004",
-                },
-            },
+            short_term_memory=ShortTermMemory(embedder=embedder_cfg),
+            entity_memory=EntityMemory(embedder=embedder_cfg),
         )
 
         res = CrewInstance.kickoff()
@@ -90,8 +93,7 @@ async def run_researcher_crew_async(
 ):
     # Set or overwrite an environment variable
     if api_key:
-        os.environ["GOOGLE_API_KEY"] = api_key
-        os.environ["GEMINI_API_KEY"] = api_key
+        os.environ["GROQ_API_KEY"] = api_key
 
     SECRET_KEY = os.getenv("SECRET_KEY")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL")

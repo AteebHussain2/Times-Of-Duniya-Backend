@@ -1,6 +1,6 @@
 from crewai_tools import SerperDevTool
-from textwrap import dedent
 from crewai import Agent, LLM
+from textwrap import dedent
 import os
 
 search_tool = SerperDevTool()
@@ -9,8 +9,8 @@ search_tool = SerperDevTool()
 class TopicReasearcherAgents:
     def __init__(self):
         self.llm = LLM(
-            api_key=os.getenv("GOOGLE_API_KEY"),
-            model="gemini/gemini-2.5-flash-lite",
+            api_key=os.getenv("GROQ_API_KEY"),
+            model="groq/meta-llama/llama-guard-4-12b",
             temperature=0.5,
         )
 
@@ -29,8 +29,8 @@ class TopicReasearcherAgents:
             tools=[search_tool],
             verbose=True,
             llm=self.llm,
-            max_rpm=10,
+            max_rpm=30,
             max_iter=5,
-            max_retries=1,
-            max_tokens=250000,
+            max_retries=3,
+            max_tokens=10000,
         )

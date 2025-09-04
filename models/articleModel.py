@@ -36,3 +36,17 @@ class ManualArticleModel(BaseModel):
     userId: str
     trigger: str
     prompt: str
+
+
+class RegenerateManualArticleModel(BaseModel):
+    title: str
+    summary: str
+    published: str
+    sources: List[str] | str
+    categoryId: int
+    jobId: int
+    topicId: int
+    userId: str
+    articleId: int
+    trigger: str
+    prompt: str

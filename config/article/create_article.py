@@ -85,8 +85,7 @@ async def run_article_writer_crew_async(
 ):
     # Set or overwrite an environment variable
     if api_key:
-        os.environ["GOOGLE_API_KEY"] = api_key
-        os.environ["GEMINI_API_KEY"] = api_key
+        os.environ["GROQ_API_KEY"] = api_key
 
     SECRET_KEY = os.getenv("SECRET_KEY")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL")
@@ -149,9 +148,7 @@ async def run_article_writer_crew_async(
 
             article_status = (
                 ARTICLESTATUS.APPROVED
-                if article
-                and len(article.get("content", "")) > 0
-                and article.get("status") == "APPROVED"
+                if article.get("status") == "APPROVED"
                 else ARTICLESTATUS.REJECTED
             )
 

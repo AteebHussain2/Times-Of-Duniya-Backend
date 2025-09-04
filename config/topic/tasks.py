@@ -95,17 +95,20 @@ class TopicReasearcherTasks:
             Only select topics that are less than {time_duration} old, Today is {datetime.now()}, have strong online engagement, and are not already covered by our platform. Use online sources like Google News, Twitter/X, Reddit, and top global news platforms.
 
             **ADDITIONAL INFORMATION**: {prompt if prompt else "None"}
+            **CURRENT DATE AND TIME**: {datetime.now()}
 
             Return a JSON array like:
-            [
-              {{
-                "title": "...",
-                "summary": "...",
-                "source": ["https://..."],
-                "published": "YYYY-MM-DD"
-              }},
-              ...
-            ]
+            {{
+                "root" : [
+                  {{
+                    "title": "...",
+                    "summary": "...",
+                    "source": ["https://..."],
+                    "published": "YYYY-MM-DD"
+                  }},
+                  ...
+                ]
+            }}
 
             **Constraints**:
             - Minimum: {min_topics} Topics
@@ -123,15 +126,16 @@ class TopicReasearcherTasks:
             agent=agent,
             expected_output=dedent(
                 """
-                [
-                  {
-                    "title": "...",
-                    "summary": "...",
-                    "source": ["..."],
-                    "published": "YYYY-MM-DD"
-                  },
-                  ...
-                ]
+                {"root": [
+                    {
+                        "title": "...",
+                        "summary": "...",
+                        "source": ["..."],
+                        "published": "YYYY-MM-DD"
+                      },
+                      ...
+                    ]
+                }
                 """
             ),
             output_json=TrendingTopicList,

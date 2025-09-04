@@ -9,9 +9,17 @@ search_tool = SerperDevTool()
 
 class ArticleWriterAgents:
     def __init__(self):
-        self.llm = LLM(
-            api_key=os.getenv("GOOGLE_API_KEY"),
-            model="gemini/gemini-2.5-flash-lite",
+        self.informantLLM = LLM(
+            api_key=os.getenv("GROQ_API_KEY"),
+            model="groq/meta-llama/llama-4-scout-17b-16e-instruct",
+        )
+        self.mentalistLLM = LLM(
+            api_key=os.getenv("GROQ_API_KEY"),
+            model="groq/gemma2-9b-it",
+        )
+        self.editorLLM = LLM(
+            api_key=os.getenv("GROQ_API_KEY"),
+            model="groq/llama-3.3-70b-versatile",
         )
 
     def informant(self):
@@ -28,16 +36,16 @@ class ArticleWriterAgents:
             allow_delegation=False,
             tools=[search_tool],
             verbose=True,
-            llm=self.llm,
-            max_rpm=10,
+            llm=self.informantLLM,
+            max_rpm=30,
             max_iter=5,
-            max_tokens=250000,
+            max_tokens=20000,
         )
 
     def news_mentalist(self):
         return Agent(
             role="News Article Writer",
-            goal="Write engaging and factual news articles from a topic and research data without turning it into a blog or opinion piece.",
+            goal="Write engaging and factual news articles from a topic and research data",
             backstory=dedent(
                 """
             A professional content strategist and news writer trained in writing for digital audiences.
@@ -47,10 +55,10 @@ class ArticleWriterAgents:
             ),
             allow_delegation=True,
             verbose=True,
-            llm=self.llm,
-            max_rpm=10,
-            max_iter=3,
-            max_tokens=250000,
+            llm=self.mentalistLLM,
+            max_rpm=30,
+            max_iter=5,
+            max_tokens=10000,
         )
 
     def final_editor(self):
@@ -66,8 +74,8 @@ class ArticleWriterAgents:
             ),
             allow_delegation=False,
             verbose=True,
-            llm=self.llm,
-            max_rpm=10,
-            max_iter=2,
-            max_tokens=250000,
+            llm=self.editorLLM,
+            max_rpm=30,
+            max_iter=5,
+            max_tokens=8000,
         )
