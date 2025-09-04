@@ -70,8 +70,8 @@ class ResearcherCrew:
             verbose=True,
             manager_agent=manager_agent,
             max_rpm=15,
-            short_term_memory=ShortTermMemory(embedder=embedder_cfg),
-            entity_memory=EntityMemory(embedder=embedder_cfg),
+            short_term_memory=ShortTermMemory(embedder_config=embedder_cfg),
+            entity_memory=EntityMemory(embedder_config=embedder_cfg),
         )
 
         res = CrewInstance.kickoff()

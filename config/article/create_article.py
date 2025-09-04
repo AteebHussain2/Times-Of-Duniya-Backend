@@ -3,6 +3,7 @@ from config.article.agents import ArticleWriterAgents
 from config.article.tasks import ArticleWriterTasks
 from config.manager.agents import ManagerAgents
 from crewai import Crew, Process
+from crewai.memory import ShortTermMemory, EntityMemory
 from prisma.enums import STATUS, ARTICLESTATUS, TYPE
 from prisma import Prisma
 from typing import List
@@ -50,6 +51,14 @@ class ArticleWriterCrew:
             self.prompt,
         )
 
+        embedder_cfg = {
+            "provider": "google",
+            "config": {
+                "api_key": GOOGLE_API_KEY,
+                "model": "text-embedding-004",
+            },
+        }
+
         NewsLetterCrew = Crew(
             agents=[informant, news_mentalist, final_editor],
             tasks=[research_task, write_task, review_task],
@@ -57,7 +66,8 @@ class ArticleWriterCrew:
             verbose=True,
             manager_agent=manager_agent,
             max_rpm=15,
-            memory=True,
+            short_term_memory=ShortTermMemory(embedder_config=embedder_cfg),
+            entity_memory=EntityMemory(embedder_config=embedder_cfg),
             embedder={
                 "provider": "google",
                 "config": {
